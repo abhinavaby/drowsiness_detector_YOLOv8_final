@@ -73,6 +73,7 @@ drowsy_counter = 0
 yawn_counter = 0
 distracted_start_time = 0
 tilt_start_time = 0
+nodding_start_time = 0
 phone_counter = 0
 alarm_on = False
 
@@ -111,7 +112,7 @@ def play_alarm(message=None):
         alarm_on = False
 
 def process_frame(frame):
-    global drowsy_counter, yawn_counter, distracted_start_time, tilt_start_time, phone_counter
+    global drowsy_counter, yawn_counter, distracted_start_time, tilt_start_time, nodding_start_time, phone_counter
     global alarm_on, pitch_history, global_alert_start_time, last_email_sent_time
     
     frame_height, frame_width, _ = frame.shape
@@ -242,12 +243,17 @@ def process_frame(frame):
                 tilt_start_time = 0
                 
             # 4. Head Nodding Logic
-            is_nodding = check_head_nodding(pitch_history) or (-20 <= pitch <= -10)
+            is_nodding = check_head_nodding(pitch_history) or (-20 <= pitch <= -3) or (5 <= pitch <= 20)
             if is_nodding:
-                info_dict["Nodding Alert"] = "NODDING OFF!"
-                current_alert = "Nodding Off"
-                if not alarm_on:
-                    threading.Thread(target=play_alarm, args=("Warning! Head nodding detected!",)).start()
+                if nodding_start_time == 0:
+                    nodding_start_time = time.time()
+                elif time.time() - nodding_start_time >= 4.0:
+                    info_dict["Nodding Alert"] = "NODDING OFF!"
+                    current_alert = "Nodding Off"
+                    if not alarm_on:
+                        threading.Thread(target=play_alarm, args=("Warning! Head nodding detected!",)).start()
+            else:
+                nodding_start_time = 0
                     
             # 5. Eye Rubbing Logic
             if hand_result.hand_landmarks:

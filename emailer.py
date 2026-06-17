@@ -4,10 +4,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
-def send_alert_email(recipient="abhinavaby07@gmail.com", alert_type="General", image_path=None):
+def send_alert_email(recipient="[EMAIL_ADDRESS]", alert_type="General", image_path=None):
     # Hardcoded sender credentials
-    sender_email = "abhinavaby07@gmail.com"
-    sender_password = "ussnbljlnrjtdlow"
+    sender_email = "[EMAIL_ADDRESS]"
+    sender_password = "[PASSWORD]"
 
     subject = f"URGENT: Drowsiness System Alert - {alert_type}"
     body = f"""
