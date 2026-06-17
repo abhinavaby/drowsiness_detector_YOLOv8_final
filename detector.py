@@ -2,6 +2,7 @@ import cv2
 import time
 import threading
 import os
+import platform
 import urllib.request
 import ssl
 from collections import deque
@@ -87,9 +88,25 @@ def play_alarm(message=None):
     global alarm_on
     if not alarm_on:
         alarm_on = True
-        os.system("afplay alarm.wav")
-        if message:
-            os.system(f"say '{message}'")
+        system_platform = platform.system()
+        if system_platform == "Windows":
+            import winsound
+            import subprocess
+            try:
+                alarm_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alarm.wav")
+                winsound.PlaySound(alarm_path, winsound.SND_FILENAME)
+            except Exception as e:
+                print(f"Error playing sound: {e}")
+            if message:
+                try:
+                    ps_command = f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{message}')"
+                    subprocess.run(["powershell", "-Command", ps_command], capture_output=True)
+                except Exception as e:
+                    print(f"Error speaking message: {e}")
+        else:
+            os.system("afplay alarm.wav")
+            if message:
+                os.system(f"say '{message}'")
         time.sleep(1) # Prevent spam
         alarm_on = False
 
@@ -107,6 +124,7 @@ def process_frame(frame):
     if yolo_model:
         # Detect person (0) and cell phone (67)
         results = yolo_model(frame, classes=[0, 67], verbose=False) 
+        person_boxes = []
         for r in results:
             boxes = r.boxes
             for box in boxes:
@@ -114,13 +132,20 @@ def process_frame(frame):
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 
                 if cls_id == 0:
-                    person_detected = True
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    cv2.putText(frame, "Driver Detected", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    area = (x2 - x1) * (y2 - y1)
+                    person_boxes.append((area, x1, y1, x2, y2))
                 elif cls_id == 67:
                     phone_detected = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     cv2.putText(frame, "Phone", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        
+        # Only detect the person closest to the screen (largest box area)
+        if person_boxes:
+            person_boxes.sort(key=lambda x: x[0], reverse=True)
+            _, px1, py1, px2, py2 = person_boxes[0]
+            person_detected = True
+            cv2.rectangle(frame, (px1, py1), (px2, py2), (255, 0, 0), 2)
+            cv2.putText(frame, "Driver Detected", (px1, py1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
     else:
         person_detected = True
         
@@ -217,7 +242,8 @@ def process_frame(frame):
                 tilt_start_time = 0
                 
             # 4. Head Nodding Logic
-            if check_head_nodding(pitch_history):
+            is_nodding = check_head_nodding(pitch_history) or (-20 <= pitch <= -10)
+            if is_nodding:
                 info_dict["Nodding Alert"] = "NODDING OFF!"
                 current_alert = "Nodding Off"
                 if not alarm_on:
