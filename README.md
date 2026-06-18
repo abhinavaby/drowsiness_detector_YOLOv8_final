@@ -49,3 +49,4 @@ Press **`q`** to quit the application.
 * **MAR (Mouth)**: Triggers when the Mouth Aspect Ratio goes above `0.50` for 10 frames.
 * **Nodding (Pitch)**: Triggers if the head pitch stays between `-20 and -3` OR `5 and 20` for 4 seconds, OR if there's a sudden head drop of `> 20` degrees.
 
+*(For a more detailed breakdown, refer to the generated `Mathematical_Details.docx` document.)*
