@@ -8,7 +8,7 @@ import ssl
 from collections import deque
 from ultralytics import YOLO
 
-# Fix for SSL: CERTIFICATE_VERIFY_FAILED on macOS
+
 ssl._create_default_https_context = ssl._create_unverified_context
 
 import mediapipe as mp
